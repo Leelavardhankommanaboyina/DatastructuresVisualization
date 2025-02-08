@@ -1,0 +1,29 @@
+/* Hover effect for menu items */
+.menu-item:hover {
+    background-color: #f4f4f4;
+    cursor: pointer;
+  }
+  
+  /* Active submenu with lines */
+  .submenu {
+    padding-left: 20px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-left: 3px solid #00796b;
+    background-color: #f4f4f4;
+  }
+  
+  .submenu > .MuiListItem-root {
+    padding-left: 30px;
+  }
+  
+  /* Divider for better spacing */
+  .MuiDivider-root {
+    margin: 5px 0;
+  }
+  
+  /* Animation for collapsing menu */
+  .MuiCollapse-root {
+    transition: max-height 0.3s ease;
+  }
+  

@@ -1,0 +1,67 @@
+/* SearchingList.css */
+.searching-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 80px;  /* Adjust this to control the distance from the top (near the navbar) */
+    padding-bottom: 20px;
+    width: 100%;
+    max-width: 800px; /* Optional: limit the width */
+    margin: 0 auto; /* Center the list horizontally */
+  }
+  
+  .list-item {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 10px;
+    background-color: #f4f4f4;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  
+  .list-item:hover {
+    background-color: #e3f2fd; /* Hover background color */
+    transform: scale(1.05);
+  }
+  
+  .icon {
+    min-width: 40px; /* Adjust the width of the icon container */
+    color: #1976d2; /* Icon color */
+  }
+  
+  .list-item .MuiListItemText-primary {
+    font-weight: 500;
+  }
+  
+  .list-item:hover .MuiListItemIcon-root {
+    color: #0d47a1; /* Icon color change on hover */
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .searching-list {
+      padding-top: 60px; /* Less padding on smaller screens */
+    }
+  
+    .list-item {
+      max-width: 100%; /* Full width on smaller screens */
+    }
+  }
+  .searching-list-container {
+    padding: 20px;
+  }
+  
+  .searching-list {
+    padding: 0;
+  }
+  
+  .list-item {
+    padding: 10px 0;
+  }
+  
+  .icon {
+    min-width: 40px;
+  }
+  
+  
