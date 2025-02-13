@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   TextField,
   Button,
@@ -12,24 +12,33 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Tabs,
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import Papa from 'papaparse';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { PictureAsPdf as PictureAsPdfIcon } from '@mui/icons-material';
+import {
+  PictureAsPdf as PictureAsPdfIcon,
+  DesktopMac as DesktopMacIcon,
+  Code as CodeIcon,
+} from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 /* ------------------------- */
 /* Helper Functions          */
 /* ------------------------- */
 
-/* mergeSorted:
-   Standard merging of two sorted arrays.
-*/
+// mergeSorted: Standard merging of two sorted arrays.
 function mergeSorted(L, R) {
   let result = [];
-  let i = 0, j = 0;
+  let i = 0,
+    j = 0;
   while (i < L.length && j < R.length) {
     if (L[i] <= R[j]) {
       result.push(L[i]);
@@ -42,13 +51,7 @@ function mergeSorted(L, R) {
   return result.concat(L.slice(i)).concat(R.slice(j));
 }
 
-/* buildMergeSortTree:
-   Recursively builds a tree representing the MergeSort process.
-   Each node has:
-   - original: the input subarray for that call
-   - merged: the sorted (merged) result
-   - left/right: child nodes (if any)
-*/
+// buildMergeSortTree: Recursively builds a tree representing the MergeSort process.
 function buildMergeSortTree(arr) {
   if (arr.length <= 1) {
     return { original: arr, merged: arr };
@@ -66,15 +69,9 @@ function buildMergeSortTree(arr) {
 /* Diagram Components        */
 /* ------------------------- */
 
-/* MergeSortNode:
-   For non‑leaf nodes, displays a three‑row diagram:
-   1. Row 1 (Input): Shows the subarray passed to mergeSort.
-   2. Row 2 (Divide): An arrow labeled "mergeSort()" points down to two child nodes.
-   3. Row 3 (Merge): An arrow labeled "merge()" points to a card with the merged (sorted) result.
-   For leaf nodes, simply display the element.
-*/
+// MergeSortNode: Displays node details and arrows for MergeSort.
 function MergeSortNode({ node }) {
-  // Leaf node: single element array.
+  // For leaf nodes, just display the element.
   if (!node.left && !node.right) {
     return (
       <Box sx={{ textAlign: 'center', m: 1 }}>
@@ -92,9 +89,7 @@ function MergeSortNode({ node }) {
       {/* Row 1: Input Card */}
       <Card sx={{ backgroundColor: '#e0e0e0', display: 'inline-block', minWidth: 140 }}>
         <CardContent>
-          <Typography variant="body2">
-            Input: [{node.original.join(', ')}]
-          </Typography>
+          <Typography variant="body2">Input: [{node.original.join(', ')}]</Typography>
         </CardContent>
       </Card>
 
@@ -113,13 +108,31 @@ function MergeSortNode({ node }) {
               <polygon points="0 0, 10 3.5, 0 7" fill="black" />
             </marker>
           </defs>
-          <line x1="60" y1="0" x2="60" y2="40" stroke="black" strokeWidth="2" markerEnd="url(#arrow1)" />
+          <line
+            x1="60"
+            y1="0"
+            x2="60"
+            y2="40"
+            stroke="black"
+            strokeWidth="2"
+            markerEnd="url(#arrow1)"
+          />
         </svg>
-        <Typography variant="caption" sx={{ ml: 1 }}>mergeSort()</Typography>
+        <Typography variant="caption" sx={{ ml: 1 }}>
+          mergeSort()
+        </Typography>
       </Box>
 
       {/* Row 2: Children Nodes */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 1, flexWrap: 'wrap' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 4,
+          mt: 1,
+          flexWrap: 'wrap',
+        }}
+      >
         <MergeSortNode node={node.left} />
         <MergeSortNode node={node.right} />
       </Box>
@@ -139,13 +152,25 @@ function MergeSortNode({ node }) {
               <polygon points="0 0, 10 3.5, 0 7" fill="green" />
             </marker>
           </defs>
-          <line x1="60" y1="0" x2="60" y2="40" stroke="green" strokeWidth="2" markerEnd="url(#arrow2)" />
+          <line
+            x1="60"
+            y1="0"
+            x2="60"
+            y2="40"
+            stroke="green"
+            strokeWidth="2"
+            markerEnd="url(#arrow2)"
+          />
         </svg>
-        <Typography variant="caption" sx={{ ml: 1, color: 'green' }}>merge()</Typography>
+        <Typography variant="caption" sx={{ ml: 1, color: 'green' }}>
+          merge()
+        </Typography>
       </Box>
 
       {/* Row 3: Merged Result Card */}
-      <Card sx={{ backgroundColor: '#c8e6c9', display: 'inline-block', minWidth: 140, mt: 1 }}>
+      <Card
+        sx={{ backgroundColor: '#c8e6c9', display: 'inline-block', minWidth: 140, mt: 1 }}
+      >
         <CardContent>
           <Typography variant="body2">
             Merged: [{node.merged.join(', ')}]
@@ -165,6 +190,116 @@ export default function MergeSortVisualization() {
   const [tree, setTree] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [inputFormat, setInputFormat] = useState('normal'); // Options: "normal", "json", "csv"
+
+  // New states for dynamic code panel
+  const [showCodePanel, setShowCodePanel] = useState(false);
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
+
+  // Code snippets for MergeSort in various languages.
+  const codeSnippets = {
+    javascript: `// JavaScript MergeSort Implementation
+function mergeSort(arr) {
+  if (arr.length <= 1) return arr;
+  const mid = Math.floor(arr.length / 2);
+  const left = mergeSort(arr.slice(0, mid));
+  const right = mergeSort(arr.slice(mid));
+  return merge(left, right);
+}
+
+function merge(left, right) {
+  let result = [];
+  while (left.length && right.length) {
+    if (left[0] <= right[0]) result.push(left.shift());
+    else result.push(right.shift());
+  }
+  return result.concat(left, right);
+}
+
+// Example:
+console.log(mergeSort([5,3,8,4,2]));`,
+    java: `// Java MergeSort Implementation
+public class MergeSort {
+  public static void mergeSort(int[] arr, int l, int r) {
+    if (l < r) {
+      int m = (l + r) / 2;
+      mergeSort(arr, l, m);
+      mergeSort(arr, m + 1, r);
+      merge(arr, l, m, r);
+    }
+  }
+  
+  public static void merge(int[] arr, int l, int m, int r) {
+    int n1 = m - l + 1;
+    int n2 = r - m;
+    int[] L = new int[n1];
+    int[] R = new int[n2];
+    for (int i = 0; i < n1; ++i) L[i] = arr[l + i];
+    for (int j = 0; j < n2; ++j) R[j] = arr[m + 1 + j];
+    int i = 0, j = 0, k = l;
+    while (i < n1 && j < n2) {
+      if (L[i] <= R[j]) arr[k++] = L[i++];
+      else arr[k++] = R[j++];
+    }
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R[j++];
+  }
+}`,
+    python: `# Python MergeSort Implementation
+def merge_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)
+
+def merge(left, right):
+    result = []
+    while left and right:
+        if left[0] <= right[0]:
+            result.append(left.pop(0))
+        else:
+            result.append(right.pop(0))
+    return result + left + right
+
+# Example:
+print(merge_sort([5,3,8,4,2]))`,
+    cpp: `// C++ MergeSort Implementation
+#include <vector>
+using namespace std;
+
+void merge(vector<int>& arr, int l, int m, int r) {
+  int n1 = m - l + 1, n2 = r - m;
+  vector<int> L(n1), R(n2);
+  for (int i = 0; i < n1; i++)
+    L[i] = arr[l + i];
+  for (int j = 0; j < n2; j++)
+    R[j] = arr[m + 1 + j];
+  int i = 0, j = 0, k = l;
+  while (i < n1 && j < n2) {
+    if (L[i] <= R[j])
+      arr[k++] = L[i++];
+    else
+      arr[k++] = R[j++];
+  }
+  while (i < n1)
+    arr[k++] = L[i++];
+  while (j < n2)
+    arr[k++] = R[j++];
+}
+
+void mergeSort(vector<int>& arr, int l, int r) {
+  if (l < r) {
+    int m = l + (r - l) / 2;
+    mergeSort(arr, l, m);
+    mergeSort(arr, m + 1, r);
+    merge(arr, l, m, r);
+  }
+}`,
+  };
+
+  // Use a ref to reliably capture the visualization container.
+  const vizRef = useRef(null);
 
   // Handle file upload (for JSON or CSV formats)
   const handleFileUpload = (event) => {
@@ -187,7 +322,7 @@ export default function MergeSortVisualization() {
   const validateInput = () => {
     let arr = [];
     if (inputFormat === 'normal') {
-      arr = inputArray.split(',').map(item => item.trim());
+      arr = inputArray.split(',').map((item) => item.trim());
     } else if (inputFormat === 'json') {
       try {
         arr = JSON.parse(inputArray);
@@ -205,7 +340,7 @@ export default function MergeSortVisualization() {
         return false;
       }
     }
-    if (arr.some(item => !item || !/^[a-zA-Z0-9]+$/.test(item))) {
+    if (arr.some((item) => !item || !/^[a-zA-Z0-9]+$/.test(item))) {
       alert('Please enter a valid array with numbers, characters, or strings.');
       return false;
     }
@@ -222,44 +357,56 @@ export default function MergeSortVisualization() {
     setIsRunning(false);
   };
 
-  // Updated PDF export function that attempts to capture the entire scrollable area
+  // Revised PDF export function to capture the full visualization.
   const handleDownloadPDF = async () => {
-    const element = document.getElementById('visualization');
+    const element = vizRef.current;
     if (!element) {
-      alert("Visualization not found!");
+      alert('Visualization not found!');
       return;
     }
     try {
-      // Use html2canvas with options to capture the full scrollable area
       const canvas = await html2canvas(element, {
-        scale: 3, // Higher scale for better quality
+        scale: 3,
+        useCORS: true,
+        logging: true,
         backgroundColor: '#fff',
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
+        width: element.scrollWidth,
+        height: element.scrollHeight,
       });
-      
+
       const imgData = canvas.toDataURL('image/png');
-      
-      // Create a PDF whose page size matches the captured image size.
-      const pdf = new jsPDF('p', 'mm', [canvas.width / 3, canvas.height / 3]);
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save('merge_sort_tree.pdf');
     } catch (error) {
-      console.error("Error generating PDF", error);
-      alert("An error occurred while generating the PDF.");
+      console.error('Error generating PDF', error);
+      alert('An error occurred while generating the PDF.');
     }
   };
 
   return (
     <Box sx={{ padding: 3 }}>
-      {/* AppBar with Title and Download PDF Button */}
+      {/* AppBar with Title, dynamic code toggle, and Download PDF Button */}
       <AppBar position="static" sx={{ mb: 3, backgroundColor: '#1976d2' }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             MergeSort Tree Visualization
           </Typography>
+          <Button color="inherit" onClick={() => setShowCodePanel((prev) => !prev)}>
+            {showCodePanel ? (
+              <>
+                <DesktopMacIcon sx={{ mr: 1 }} />
+                Screen
+              </>
+            ) : (
+              <>
+                <CodeIcon sx={{ mr: 1 }} />
+                Code
+              </>
+            )}
+          </Button>
           <Button color="inherit" startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPDF}>
             Download PDF
           </Button>
@@ -321,9 +468,10 @@ export default function MergeSortVisualization() {
           </Grid>
         </Grid>
 
-        {/* Scrollable Visualization Area */}
+        {/* Visualization / Code Panel Area */}
         <Box
           id="visualization"
+          ref={vizRef}
           sx={{
             mt: 4,
             mb: 4,
@@ -333,10 +481,45 @@ export default function MergeSortVisualization() {
             overflowY: 'auto',
             maxHeight: '80vh',
             minWidth: '100%',
-            backgroundColor: '#f9f9f9'
+            backgroundColor: '#f9f9f9',
           }}
         >
-          {tree ? (
+          {showCodePanel ? (
+            <>
+              <Box
+                sx={{
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Tabs
+                  value={codeLanguage}
+                  onChange={(e, newValue) => setCodeLanguage(newValue)}
+                  textColor="primary"
+                  indicatorColor="primary"
+                >
+                  <Tab value="javascript" label="JavaScript" />
+                  <Tab value="java" label="Java" />
+                  <Tab value="python" label="Python" />
+                  <Tab value="cpp" label="C++" />
+                </Tabs>
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <pre
+                  style={{
+                    backgroundColor: '#f5f5f5',
+                    padding: '16px',
+                    borderRadius: '4px',
+                    overflow: 'auto',
+                  }}
+                >
+                  {codeSnippets[codeLanguage]}
+                </pre>
+              </Box>
+            </>
+          ) : tree ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <MergeSortNode node={tree} />
             </motion.div>
@@ -346,11 +529,40 @@ export default function MergeSortVisualization() {
             </Typography>
           )}
         </Box>
+
         {tree && (
           <Typography variant="h6" align="center">
             Sorted Array: [{tree.merged.join(', ')}]
           </Typography>
         )}
+
+        {/* Detailed Explanation Accordion */}
+        <Accordion sx={{ mt: 4 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Detailed Explanation</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              <strong>MergeSort Algorithm:</strong>
+            </Typography>
+            <Typography variant="body2" paragraph>
+              MergeSort is a divide‑and‑conquer algorithm that divides the input array into two halves,
+              recursively sorts each half, and then merges the sorted halves.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>How It Works:</strong>
+              <br />
+              1. Divide the array into two halves until you have subarrays of size 1.
+              <br />
+              2. Merge the subarrays in a manner that results in a sorted array.
+              <br />
+              3. The merging process involves comparing the elements of the subarrays and combining them in order.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>Time Complexity:</strong> O(n log n) in the average and best cases, with a worst-case of O(n log n).
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
       </Box>
     </Box>
   );

@@ -1,20 +1,28 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   TextField,
   Button,
   Typography,
   Box,
   Grid,
-  MenuItem,
-  Select,
-  InputLabel,
-  FormControl,
   Card,
   CardContent,
   AppBar,
-  Toolbar
+  Toolbar,
+  Tabs,
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
 } from '@mui/material';
-import { Save as SaveIcon, PictureAsPdf as PictureAsPdfIcon } from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CodeIcon from '@mui/icons-material/Code';
+import DesktopMacIcon from '@mui/icons-material/DesktopMac';
 import { motion } from 'framer-motion';
 import Papa from 'papaparse';
 import { jsPDF } from 'jspdf';
@@ -24,205 +32,165 @@ export default function LinearSearch() {
   const [array, setArray] = useState('');
   const [target, setTarget] = useState('');
   const [steps, setSteps] = useState([]);
-  const [found, setFound] = useState(false);
-  const [timeComplexity, setTimeComplexity] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [highlightIndex, setHighlightIndex] = useState(null);
+  const [found, setFound] = useState(false);
   const [foundIndex, setFoundIndex] = useState(null);
-  const [inputFormat, setInputFormat] = useState('normal'); // "normal", "json", "csv"
-  const [targetFormat, setTargetFormat] = useState('normal'); // "normal", "json", "csv"
+  const [timeComplexity, setTimeComplexity] = useState('');
+
+  // Input format states
+  const [inputFormat, setInputFormat] = useState('normal');
+  const [targetFormat, setTargetFormat] = useState('normal');
   const [fileContent, setFileContent] = useState(null);
   const [targetFileContent, setTargetFileContent] = useState(null);
+  const [uploadingArray, setUploadingArray] = useState(false);
+  const [uploadedArrayFileName, setUploadedArrayFileName] = useState('');
+  const [uploadingTarget, setUploadingTarget] = useState(false);
+  const [uploadedTargetFileName, setUploadedTargetFileName] = useState('');
 
-  // For saved visualizations
-  const [savedVisualizations, setSavedVisualizations] = useState([]);
+  // Dynamic code panel state
+  const [showCodePanel, setShowCodePanel] = useState(false);
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
 
-  // Load saved visualizations from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('savedVisualizations');
-    if (saved) {
-      setSavedVisualizations(JSON.parse(saved));
+  const codeSnippets = {
+    javascript: `// JavaScript Implementation of Linear Search
+function linearSearch(arr, target) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] === target) return i;
+  }
+  return -1;
+}`,
+    java: `// Java Implementation of Linear Search
+public class LinearSearch {
+  public static int linearSearch(int[] arr, int target) {
+    for (int i = 0; i < arr.length; i++) {
+      if (arr[i] == target) return i;
     }
-  }, []);
+    return -1;
+  }
+}`,
+    python: `# Python Implementation of Linear Search
+def linear_search(arr, target):
+    for i, value in enumerate(arr):
+        if value == target:
+            return i
+    return -1`,
+    cpp: `// C++ Implementation of Linear Search
+#include <iostream>
+#include <vector>
+using namespace std;
 
-  // Save current visualization to localStorage
-  const handleSaveVisualization = () => {
-    const visualization = {
-      timestamp: new Date().toISOString(),
-      steps,
-      found,
-      foundIndex,
-      timeComplexity,
-      array,
-      target
-    };
-    const updated = [...savedVisualizations, visualization];
-    setSavedVisualizations(updated);
-    localStorage.setItem('savedVisualizations', JSON.stringify(updated));
-    alert('Visualization saved!');
+int linearSearch(const vector<int>& arr, int target) {
+  for (int i = 0; i < arr.size(); i++) {
+    if (arr[i] == target)
+      return i;
+  }
+  return -1;
+}`
   };
 
-  // Function to download the visualization as a PDF
-  const handleDownloadPDF = async () => {
-    const element = document.getElementById('visualization');
-    if (!element) {
-      alert("Visualization not found!");
-      return;
-    }
-    try {
-      // Use html2canvas to capture the visualization element
-      const canvas = await html2canvas(element, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // Calculate the image dimensions to maintain aspect ratio
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      // If the captured image height is larger than the page height, add multiple pages
-      let position = 0;
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      if (imgHeight > pdfHeight) {
-        let heightLeft = imgHeight - pdfHeight;
-        while (heightLeft > 0) {
-          position = position - pdfHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pdfHeight;
-        }
-      }
-      pdf.save('visualization.pdf');
-    } catch (error) {
-      console.error("Error generating PDF", error);
-      alert("An error occurred while generating the PDF.");
-    }
-  };
-
-  // Handle file upload for array
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
+    setUploadingArray(true);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target.result;
-      setFileContent(content);
-      if (file.type === 'application/json') {
-        setInputFormat('json');
-      } else if (file.type === 'text/csv') {
-        setInputFormat('csv');
-      }
+    reader.onload = (ev) => {
+      setFileContent(ev.target.result);
+      setUploadedArrayFileName(file.name);
+      setUploadingArray(false);
+      if (file.type === 'application/json') setInputFormat('json');
+      else if (file.type === 'text/csv') setInputFormat('csv');
     };
     reader.readAsText(file);
   };
 
-  // Handle file upload for target
-  const handleTargetFileUpload = (event) => {
-    const file = event.target.files[0];
+  const handleTargetFileUpload = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
+    setUploadingTarget(true);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target.result;
-      setTargetFileContent(content);
-      if (file.type === 'application/json') {
-        setTargetFormat('json');
-      } else if (file.type === 'text/csv') {
-        setTargetFormat('csv');
-      }
+    reader.onload = (ev) => {
+      setTargetFileContent(ev.target.result);
+      setUploadedTargetFileName(file.name);
+      setUploadingTarget(false);
+      if (file.type === 'application/json') setTargetFormat('json');
+      else if (file.type === 'text/csv') setTargetFormat('csv');
     };
     reader.readAsText(file);
   };
 
   const validateInput = () => {
     let arr = [];
-    if (inputFormat === 'normal') {
-      arr = array.split(',').map(item => item.trim());
-    } else if (inputFormat === 'json') {
-      try {
+    let targetValue;
+    try {
+      if (inputFormat === 'normal') {
+        arr = array.split(',').map(item => item.trim()).filter(item => item !== '');
+      } else if (inputFormat === 'json') {
         arr = JSON.parse(fileContent);
         if (!Array.isArray(arr)) throw new Error();
-      } catch (error) {
-        alert('Invalid JSON format for array.');
-        return false;
-      }
-    } else if (inputFormat === 'csv') {
-      try {
+      } else if (inputFormat === 'csv') {
         const parsed = Papa.parse(fileContent, { skipEmptyLines: true });
         arr = parsed.data.flat();
-        if (arr.some(item => item === '')) {
-          throw new Error();
+      }
+      arr = arr.map(Number);
+      if (arr.some(isNaN)) {
+        alert("Invalid array numbers.");
+        return false;
+      }
+      if (targetFormat === 'normal') {
+        if (!target.trim()) throw new Error();
+        targetValue = Number(target);
+      } else if (targetFormat === 'json') {
+        let parsedTarget = JSON.parse(targetFileContent);
+        if (Array.isArray(parsedTarget)) {
+          if (parsedTarget.length !== 1) {
+            alert("Target JSON must contain a single value.");
+            return false;
+          }
+          targetValue = Number(parsedTarget[0]);
+        } else {
+          targetValue = Number(parsedTarget);
         }
-      } catch (error) {
-        alert('Invalid CSV format for array.');
-        return false;
-      }
-    }
-    let targetValue = target;
-    if (targetFormat === 'json') {
-      try {
-        targetValue = JSON.parse(targetFileContent);
-        if (!Array.isArray(targetValue)) throw new Error();
-      } catch (error) {
-        alert('Invalid JSON format for target.');
-        return false;
-      }
-    } else if (targetFormat === 'csv') {
-      try {
+      } else if (targetFormat === 'csv') {
         const parsed = Papa.parse(targetFileContent, { skipEmptyLines: true });
-        targetValue = parsed.data.flat();
-        if (targetValue.length !== 1) throw new Error('CSV for target must contain only one value.');
-      } catch (error) {
-        alert('Invalid CSV format for target.');
+        let tArr = parsed.data.flat();
+        if (tArr.length !== 1) {
+          alert("Target CSV must contain a single value.");
+          return false;
+        }
+        targetValue = Number(tArr[0]);
+      }
+      if (isNaN(targetValue)) {
+        alert("Invalid target number.");
         return false;
       }
-    }
-    if (targetFormat === 'normal' && !targetValue) {
-      alert("Please enter a valid target value.");
+      return { arr, targetValue };
+    } catch (err) {
+      alert("Invalid input format.");
       return false;
     }
-    if (arr.some(item => item === '')) {
-      alert("Please enter valid elements in the array.");
-      return false;
-    }
-    return true;
   };
 
-  const linearSearch = async () => {
-    if (!validateInput()) return;
+  const linearSearchAlgo = async () => {
+    setShowCodePanel(false);
+    const validation = validateInput();
+    if (!validation) return;
     setIsRunning(true);
     setSteps([]);
-    setHighlightIndex(null);
+    setFound(false);
     setFoundIndex(null);
-    let arr = [];
-    if (inputFormat === 'normal') {
-      arr = array.split(',').map(item => item.trim());
-    } else if (inputFormat === 'json') {
-      arr = JSON.parse(fileContent);
-    } else if (inputFormat === 'csv') {
-      const parsed = Papa.parse(fileContent, { skipEmptyLines: true });
-      arr = parsed.data.flat();
-    }
-    let targetValue = target;
-    if (targetFormat === 'json') {
-      targetValue = JSON.parse(targetFileContent);
-    } else if (targetFormat === 'csv') {
-      const parsed = Papa.parse(targetFileContent, { skipEmptyLines: true });
-      targetValue = parsed.data.flat()[0];
-    }
+    let { arr, targetValue } = validation;
     let stepsArr = [];
     let foundIdx = -1;
     for (let i = 0; i < arr.length; i++) {
-      setHighlightIndex(i);
       stepsArr.push({ step: `Checking index ${i}: ${arr[i]}`, arrayState: [...arr], highlightIndex: i });
       setSteps([...stepsArr]);
       await new Promise(resolve => setTimeout(resolve, 800));
       if (arr[i] === targetValue) {
         foundIdx = i;
-        setFoundIndex(i);
         stepsArr.push({ step: `Target found at index ${i}`, arrayState: [...arr], highlightIndex: null, targetFound: true });
         setSteps([...stepsArr]);
         setFound(true);
+        setFoundIndex(i);
         break;
       }
     }
@@ -231,191 +199,223 @@ export default function LinearSearch() {
       setSteps([...stepsArr]);
       setFound(false);
     }
-    setTimeComplexity('O(n) - Linear search has a time complexity of O(n), where n is the array size.');
+    setTimeComplexity('O(n) - Linear search has a time complexity of O(n), where n is the number of elements.');
     setIsRunning(false);
+  };
+
+  const handleSavePDF = async () => {
+    const element = document.getElementById('visualization');
+    if (!element) return;
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('linear_search_visualization.pdf');
   };
 
   return (
     <Box sx={{ padding: 3 }}>
-      {/* AppBar with Save Visualization and Download PDF buttons */}
       <AppBar position="static" sx={{ mb: 3, backgroundColor: '#1976d2' }}>
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Linear Search Visualization
           </Typography>
-          <Button color="inherit" startIcon={<SaveIcon />} onClick={handleSaveVisualization}>
-            Save Visualization
+          <Button color="inherit" onClick={() => setShowCodePanel(prev => !prev)}>
+            {showCodePanel ? (<><DesktopMacIcon sx={{ mr: 1 }} />Screen</>) : (<><CodeIcon sx={{ mr: 1 }} />Code</>)}
           </Button>
-          <Button color="inherit" startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPDF}>
-            Download PDF
+          <Button color="inherit" onClick={handleSavePDF}>
+            Save Visualization
           </Button>
         </Toolbar>
       </AppBar>
-
       <Box sx={{ maxWidth: 800, margin: 'auto' }}>
-        <Typography variant="h4" gutterBottom align="center">
+        <Typography variant="h4" align="center" gutterBottom>
           Linear Search Algorithm
         </Typography>
-
-        <Grid container spacing={2}>
-          {/* Input Format Selector */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel>Input Format</InputLabel>
-              <Select
-                value={inputFormat}
-                onChange={(e) => setInputFormat(e.target.value)}
-                label="Input Format"
-              >
-                <MenuItem value="normal">Normal (Comma Separated)</MenuItem>
-                <MenuItem value="json">JSON</MenuItem>
-                <MenuItem value="csv">CSV</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          {inputFormat !== 'normal' && (
-            <Grid item xs={12} md={6}>
-              <Button variant="contained" component="label" fullWidth>
-                Upload Array File
-                <input type="file" accept=".json,.csv" hidden onChange={handleFileUpload} />
-              </Button>
-            </Grid>
-          )}
-          {inputFormat === 'normal' && (
-            <Grid item xs={12}>
-              <TextField 
-                label="Array" 
-                variant="outlined" 
-                fullWidth 
-                value={array} 
-                onChange={(e) => setArray(e.target.value)} 
-                margin="normal" 
-                multiline
-                rows={4}
-              />
-            </Grid>
-          )}
-
-          {/* Target Format Selector */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel>Target Format</InputLabel>
-              <Select
-                value={targetFormat}
-                onChange={(e) => setTargetFormat(e.target.value)}
-                label="Target Format"
-              >
+        {/* Array Input Row */}
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Array Format</InputLabel>
+              <Select value={inputFormat} label="Array Format" onChange={(e) => setInputFormat(e.target.value)}>
                 <MenuItem value="normal">Normal</MenuItem>
                 <MenuItem value="json">JSON</MenuItem>
                 <MenuItem value="csv">CSV</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-          {targetFormat !== 'normal' && (
-            <Grid item xs={12} md={6}>
-              <Button variant="contained" component="label" fullWidth>
-                Upload Target File
-                <input type="file" accept=".json,.csv" hidden onChange={handleTargetFileUpload} />
-              </Button>
-            </Grid>
-          )}
-          {targetFormat === 'normal' && (
-            <Grid item xs={12}>
-              <TextField 
-                label="Target Value" 
-                variant="outlined" 
-                fullWidth 
-                value={target} 
-                onChange={(e) => setTarget(e.target.value)} 
+          <Grid item xs={12} md={9}>
+            {inputFormat === 'normal' ? (
+              <TextField
+                label="Array"
+                variant="outlined"
+                fullWidth
+                size="small"
+                value={array}
+                onChange={(e) => setArray(e.target.value)}
+                
               />
-            </Grid>
-          )}
-          <Grid item xs={12}>
-            <Button variant="contained" color="primary" onClick={linearSearch} disabled={isRunning} fullWidth>
-              {isRunning ? 'Searching...' : 'Start Search'}
-            </Button>
+            ) : (
+              <Box display="flex" alignItems="center" gap={2}>
+                <Button variant="contained" component="label">
+                  Upload Array File
+                  <input type="file" accept=".json,.csv" hidden onChange={handleFileUpload} />
+                </Button>
+                {uploadingArray ? <CircularProgress size={24} /> : uploadedArrayFileName && <Typography variant="body2">{uploadedArrayFileName}</Typography>}
+              </Box>
+            )}
           </Grid>
         </Grid>
-
-        {/* Visualization Card (with an id to target for PDF conversion) */}
+        {/* Target Input Row */}
+        <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Target Format</InputLabel>
+              <Select value={targetFormat} label="Target Format" onChange={(e) => setTargetFormat(e.target.value)}>
+                <MenuItem value="normal">Normal</MenuItem>
+                <MenuItem value="json">JSON</MenuItem>
+                <MenuItem value="csv">CSV</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={9}>
+            {targetFormat === 'normal' ? (
+              <TextField
+                label="Target Value"
+                variant="outlined"
+                fullWidth
+                size="small"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+               
+              />
+            ) : (
+              <Box display="flex" alignItems="center" gap={2}>
+                <Button variant="contained" component="label">
+                  Upload Target File
+                  <input type="file" accept=".json,.csv" hidden onChange={handleTargetFileUpload} />
+                </Button>
+                {uploadingTarget ? <CircularProgress size={24} /> : uploadedTargetFileName && <Typography variant="body2">{uploadedTargetFileName}</Typography>}
+              </Box>
+            )}
+          </Grid>
+        </Grid>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Button variant="contained" color="primary" onClick={linearSearchAlgo} disabled={isRunning} fullWidth>
+            {isRunning ? 'Searching...' : 'Start Search'}
+          </Button>
+        </Box>
         <Card id="visualization" sx={{ mt: 4, mb: 4, boxShadow: 3 }}>
           <CardContent>
-            {steps.length > 0 ? (
+            {showCodePanel ? (
               <>
-                <Typography variant="h6" gutterBottom>
-                  Steps:
-                </Typography>
-                {steps.map((step, index) => (
-                  <motion.div key={index} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.5 }}>
-                    <Typography variant="body1">{step.step}</Typography>
-                    <Grid container justifyContent="center" spacing={1} sx={{ mt: 2, mb: 2 }}>
-                      {step.arrayState.map((item, idx) => (
-                        <Grid item key={idx}>
-                          <motion.div
-                            animate={{
-                              scale: step.highlightIndex === idx ? 1.3 : 1,
-                              backgroundColor:
-                                foundIndex === idx && step.highlightIndex === null
-                                  ? 'lightgreen'
-                                  : step.highlightIndex === idx
-                                  ? 'lightblue'
-                                  : '#fff',
-                            }}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              width: 50,
-                              height: 50,
-                              borderRadius: '10px',
-                              border: '2px solid #000',
-                              fontSize: '18px',
-                              fontWeight: 'bold',
-                              padding: '4px'
-                            }}
-                          >
-                            {item}
-                          </motion.div>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </motion.div>
-                ))}
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
+                  <Tabs value={codeLanguage} onChange={(e, newValue) => setCodeLanguage(newValue)} textColor="primary" indicatorColor="primary">
+                    <Tab value="javascript" label="JavaScript" />
+                    <Tab value="java" label="Java" />
+                    <Tab value="python" label="Python" />
+                    <Tab value="cpp" label="C++" />
+                  </Tabs>
+                </Box>
+                <Box sx={{ mt: 2 }}>
+                  <pre style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '4px', overflow: 'auto' }}>
+                    {codeSnippets[codeLanguage]}
+                  </pre>
+                </Box>
               </>
             ) : (
-              <Typography variant="body1" align="center">
-                Visualization steps will appear here.
-              </Typography>
+              <>
+                {steps.length > 0 ? (
+                  <>
+                    <Typography variant="h6" gutterBottom>
+                      Steps:
+                    </Typography>
+                    {steps.map((step, index) => (
+                      <motion.div key={index} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.5 }}>
+                        <Card sx={{ padding: 2, marginBottom: 2 }}>
+                          <Typography variant="subtitle1" color="primary">
+                            {step.step}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            {step.explanation}
+                          </Typography>
+                          <Grid container justifyContent="center" spacing={1} sx={{ mt: 2 }}>
+                            {step.arrayState.map((item, idx) => (
+                              <Grid item key={idx}>
+                                <motion.div
+                                  animate={{
+                                    scale: step.targetFound
+                                      ? (idx === foundIndex ? 1.3 : 1)
+                                      : (step.highlightIndex === idx ? 1.3 : 1),
+                                    backgroundColor: step.targetFound
+                                      ? (idx === foundIndex ? 'lightgreen' : '#fff')
+                                      : (step.highlightIndex === idx ? 'lightblue' : '#fff'),
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    width: 50,
+                                    height: 50,
+                                    borderRadius: '10px',
+                                    border: '2px solid #333',
+                                    fontSize: '18px',
+                                    fontWeight: 'bold',
+                                  }}
+                                >
+                                  {item}
+                                </motion.div>
+                              </Grid>
+                            ))}
+                          </Grid>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </>
+                ) : (
+                  <Typography variant="body1" align="center">
+                    Visualization steps will appear here.
+                  </Typography>
+                )}
+                <Typography variant="h6" align="center" sx={{ mt: 4 }}>
+                  {foundIndex !== null ? `Target found at index ${foundIndex}` : 'Target not found'}
+                </Typography>
+                <Typography variant="body2" align="center" sx={{ mt: 2, color: '#555' }}>
+                  {timeComplexity}
+                </Typography>
+              </>
             )}
-            <Typography variant="h6" align="center" sx={{ mt: 2 }}>
-              {found ? `Target found at index ${foundIndex}` : 'Target not found'}
-            </Typography>
-            <Typography variant="body2" align="center" sx={{ mt: 1 }}>
-              {timeComplexity}
-            </Typography>
           </CardContent>
         </Card>
-
-        {/* Saved Visualizations Card */}
-        {savedVisualizations.length > 0 && (
-          <Card sx={{ mt: 4, boxShadow: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Saved Visualizations
-              </Typography>
-              {savedVisualizations.map((viz, index) => (
-                <Box key={index} sx={{ p: 1, borderBottom: '1px solid #ccc' }}>
-                  <Typography variant="body2">
-                    Saved on: {new Date(viz.timestamp).toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2">
-                    Steps Count: {viz.steps.length}
-                  </Typography>
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+        <Accordion sx={{ mt: 4 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Detailed Explanation</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              <strong>Linear Search Algorithm:</strong>
+            </Typography>
+            <Typography variant="body2" paragraph>
+              Linear search sequentially checks each element of the array until the target is found or the array ends.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>How It Works:</strong>
+              <br />
+              1. Start at the first element.
+              <br />
+              2. Compare each element with the target.
+              <br />
+              3. If a match is found, return the index.
+              <br />
+              4. Otherwise, continue until the end of the array.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>Time Complexity:</strong> O(n) – in the worst-case scenario, every element is checked.
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
       </Box>
     </Box>
   );

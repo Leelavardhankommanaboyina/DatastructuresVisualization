@@ -12,22 +12,80 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Tabs,
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import Papa from 'papaparse';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { PictureAsPdf as PictureAsPdfIcon } from '@mui/icons-material';
+import { PictureAsPdf as PictureAsPdfIcon, DesktopMac as DesktopMacIcon, Code as CodeIcon } from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 export default function BubbleSortVisualization() {
-  // State variables for input, steps, sorting status, etc.
+  // States for input and visualization
   const [inputArray, setInputArray] = useState('');
   const [steps, setSteps] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
   const [sortedArray, setSortedArray] = useState(null);
   const [inputFormat, setInputFormat] = useState('normal'); // Options: "normal", "json", "csv"
   const [fileContent, setFileContent] = useState(null);
+
+  // New states for dynamic code panel
+  const [showCodePanel, setShowCodePanel] = useState(false);
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
+
+  // Code snippets for Bubble Sort in various languages
+  const codeSnippets = {
+    javascript: `// JavaScript Implementation of Bubble Sort
+function bubbleSort(arr) {
+  let n = arr.length;
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+      }
+    }
+  }
+  return arr;
+}`,
+    java: `// Java Implementation of Bubble Sort
+public void bubbleSort(int[] arr) {
+  int n = arr.length;
+  for (int i = 0; i < n - 1; i++) {
+    for (int j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j+1]) {
+        int temp = arr[j];
+        arr[j] = arr[j+1];
+        arr[j+1] = temp;
+      }
+    }
+  }
+}`,
+    python: `# Python Implementation of Bubble Sort
+def bubble_sort(arr):
+    n = len(arr)
+    for i in range(n-1):
+        for j in range(n-i-1):
+            if arr[j] > arr[j+1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+    return arr`,
+    cpp: `// C++ Implementation of Bubble Sort
+void bubbleSort(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n-1; i++) {
+        for (int j = 0; j < n-i-1; j++) {
+            if (arr[j] > arr[j+1]) {
+                swap(arr[j], arr[j+1]);
+            }
+        }
+    }
+}`
+  };
 
   // Handle file upload for array input (JSON or CSV)
   const handleFileUpload = (event) => {
@@ -85,7 +143,7 @@ export default function BubbleSortVisualization() {
     setSteps([]);
     setSortedArray(null);
 
-    let arr = [...arrOriginal]; // make a copy so that we don't mutate the original
+    let arr = [...arrOriginal]; // copy to avoid mutating original
     let stepsArr = [];
     const n = arr.length;
 
@@ -96,15 +154,14 @@ export default function BubbleSortVisualization() {
         let stepMessage = `Comparing ${arr[j]} and ${arr[j + 1]}`;
         let swapOccurred = false;
 
-        // If items are out of order, swap them and update the step message.
+        // Swap if out of order
         if (arr[j] > arr[j + 1]) {
           [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
           swapOccurred = true;
           stepMessage += ` => Swapped`;
         }
 
-        // Record the current step: the message, the current array state,
-        // the indices being compared, and whether a swap occurred.
+        // Record the current step
         const step = {
           step: stepMessage,
           arrayState: [...arr],
@@ -114,7 +171,7 @@ export default function BubbleSortVisualization() {
 
         stepsArr.push(step);
         setSteps([...stepsArr]);
-        // Delay between steps for visualization
+        // Delay for visualization
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
@@ -158,14 +215,17 @@ export default function BubbleSortVisualization() {
 
   return (
     <Box sx={{ padding: 3 }}>
-      {/* AppBar with title and Download PDF button */}
+      {/* AppBar with title, code toggle, and Download PDF button */}
       <AppBar position="static" sx={{ mb: 3, backgroundColor: '#1976d2' }}>
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Bubble Sort Visualization
           </Typography>
+          <Button color="inherit" onClick={() => setShowCodePanel(prev => !prev)}>
+            {showCodePanel ? (<><DesktopMacIcon sx={{ mr: 1 }} />Screen</>) : (<><CodeIcon sx={{ mr: 1 }} />Code</>)}
+          </Button>
           <Button color="inherit" startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPDF}>
-            Download PDF
+            Save Visualization
           </Button>
         </Toolbar>
       </AppBar>
@@ -229,67 +289,119 @@ export default function BubbleSortVisualization() {
         {/* Visualization Card */}
         <Card id="visualization" sx={{ mt: 4, mb: 4, boxShadow: 3 }}>
           <CardContent>
-            {steps.length > 0 ? (
+            {showCodePanel ? (
               <>
-                <Typography variant="h6" gutterBottom>
-                  Steps:
-                </Typography>
-                {steps.map((step, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: index * 0.5 }}
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
+                  <Tabs
+                    value={codeLanguage}
+                    onChange={(e, newValue) => setCodeLanguage(newValue)}
+                    textColor="primary"
+                    indicatorColor="primary"
                   >
-                    <Typography variant="body1" sx={{ mt: 2 }}>
-                      {step.step}
-                    </Typography>
-                    <Grid container justifyContent="center" spacing={2} sx={{ mt: 2 }}>
-                      {step.arrayState.map((item, idx) => (
-                        <Grid item key={idx}>
-                          <motion.div
-                            animate={{
-                              // Highlight the two elements being compared
-                              scale: step.compare.includes(idx) ? 1.3 : 1,
-                              backgroundColor: step.compare.includes(idx) ? 'lightblue' : 'white',
-                              // Vertical jump effect when comparing
-                              y: step.compare.includes(idx) ? [0, -10, 0] : 0,
-                              // Horizontal translation if a swap occurred
-                              x: step.swap && step.compare.includes(idx)
-                                ? (idx === step.compare[0] ? [-10, 10, 0] : [10, -10, 0])
-                                : 0,
-                            }}
-                            transition={{ duration: 0.5 }}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              width: 50,
-                              height: 50,
-                              borderRadius: '10px',
-                              border: '2px solid #000',
-                              fontSize: '18px',
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            {item}
-                          </motion.div>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </motion.div>
-                ))}
+                    <Tab value="javascript" label="JavaScript" />
+                    <Tab value="java" label="Java" />
+                    <Tab value="python" label="Python" />
+                    <Tab value="cpp" label="C++" />
+                  </Tabs>
+                </Box>
+                <Box sx={{ mt: 2 }}>
+                  <pre style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '4px', overflow: 'auto' }}>
+                    {codeSnippets[codeLanguage]}
+                  </pre>
+                </Box>
               </>
             ) : (
-              <Typography variant="body1" align="center">
-                Visualization steps will appear here.
-              </Typography>
+              <>
+                {steps.length > 0 ? (
+                  <>
+                    <Typography variant="h6" gutterBottom>
+                      Steps:
+                    </Typography>
+                    {steps.map((step, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.5 }}
+                      >
+                        <Typography variant="body1" sx={{ mt: 2 }}>
+                          {step.step}
+                        </Typography>
+                        <Grid container justifyContent="center" spacing={2} sx={{ mt: 2 }}>
+                          {step.arrayState.map((item, idx) => (
+                            <Grid item key={idx}>
+                              <motion.div
+                                animate={{
+                                  // Highlight compared elements
+                                  scale: step.compare.includes(idx) ? 1.3 : 1,
+                                  backgroundColor: step.compare.includes(idx) ? 'lightblue' : 'white',
+                                  y: step.compare.includes(idx) ? [0, -10, 0] : 0,
+                                  x: step.swap && step.compare.includes(idx)
+                                    ? (idx === step.compare[0] ? [-10, 10, 0] : [10, -10, 0])
+                                    : 0,
+                                }}
+                                transition={{ duration: 0.5 }}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  width: 50,
+                                  height: 50,
+                                  borderRadius: '10px',
+                                  border: '2px solid #000',
+                                  fontSize: '18px',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                {item}
+                              </motion.div>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </motion.div>
+                    ))}
+                  </>
+                ) : (
+                  <Typography variant="body1" align="center">
+                    Visualization steps will appear here.
+                  </Typography>
+                )}
+              </>
             )}
             <Typography variant="h6" align="center" sx={{ mt: 4 }}>
               {sortedArray ? `Sorted Array: ${sortedArray.join(', ')}` : 'Sorting in progress...'}
             </Typography>
           </CardContent>
         </Card>
+
+        {/* Detailed Explanation Accordion */}
+        <Accordion sx={{ mt: 4 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Detailed Explanation</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              <strong>Bubble Sort Algorithm:</strong>
+            </Typography>
+            <Typography variant="body2" paragraph>
+              Bubble Sort repeatedly steps through the list, comparing adjacent elements and swapping them if they are in the wrong order.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>How It Works:</strong>
+              <br />
+              1. Compare adjacent elements.
+              <br />
+              2. Swap them if they are out of order.
+              <br />
+              3. Continue through the list.
+              <br />
+              4. Repeat until no swaps are needed.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>Time Complexity:</strong> O(n²) on average and in the worst case, though it can perform better (O(n)) if the array is already sorted.
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
       </Box>
     </Box>
   );

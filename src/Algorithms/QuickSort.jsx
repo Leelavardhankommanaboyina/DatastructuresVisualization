@@ -12,13 +12,23 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Tabs,
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import Papa from 'papaparse';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { PictureAsPdf as PictureAsPdfIcon } from '@mui/icons-material';
+import {
+  PictureAsPdf as PictureAsPdfIcon,
+  DesktopMac as DesktopMacIcon,
+  Code as CodeIcon,
+} from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 export default function QuickSortVisualization() {
   // States for input, visualization steps, and sorting status
@@ -28,6 +38,80 @@ export default function QuickSortVisualization() {
   const [sortedArray, setSortedArray] = useState(null);
   const [inputFormat, setInputFormat] = useState('normal'); // "normal", "json", or "csv"
   const [fileContent, setFileContent] = useState(null);
+
+  // New states for dynamic code panel
+  const [showCodePanel, setShowCodePanel] = useState(false);
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
+
+  // Code snippets for QuickSort in different languages
+  const codeSnippets = {
+    javascript: `// JavaScript Implementation of QuickSort
+function quickSort(arr) {
+  if (arr.length < 2) return arr;
+  const pivot = arr[arr.length - 1];
+  const left = [];
+  const right = [];
+  for (let i = 0; i < arr.length - 1; i++) {
+    if (arr[i] < pivot) left.push(arr[i]);
+    else right.push(arr[i]);
+  }
+  return [...quickSort(left), pivot, ...quickSort(right)];
+}`,
+    java: `// Java Implementation of QuickSort
+public void quickSort(int[] arr, int low, int high) {
+  if (low < high) {
+    int pi = partition(arr, low, high);
+    quickSort(arr, low, pi - 1);
+    quickSort(arr, pi + 1, high);
+  }
+}
+
+private int partition(int[] arr, int low, int high) {
+  int pivot = arr[high];
+  int i = low - 1;
+  for (int j = low; j < high; j++) {
+    if (arr[j] <= pivot) {
+      i++;
+      int temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+  }
+  int temp = arr[i + 1];
+  arr[i + 1] = arr[high];
+  arr[high] = temp;
+  return i + 1;
+}`,
+    python: `# Python Implementation of QuickSort
+def quick_sort(arr):
+    if len(arr) < 2:
+        return arr
+    pivot = arr[-1]
+    left = [x for x in arr[:-1] if x < pivot]
+    right = [x for x in arr[:-1] if x >= pivot]
+    return quick_sort(left) + [pivot] + quick_sort(right)`,
+    cpp: `// C++ Implementation of QuickSort
+void quickSort(vector<int>& arr, int low, int high) {
+  if (low < high) {
+    int pi = partition(arr, low, high);
+    quickSort(arr, low, pi - 1);
+    quickSort(arr, pi + 1, high);
+  }
+}
+
+int partition(vector<int>& arr, int low, int high) {
+  int pivot = arr[high];
+  int i = low - 1;
+  for (int j = low; j < high; j++) {
+    if (arr[j] <= pivot) {
+      i++;
+      swap(arr[i], arr[j]);
+    }
+  }
+  swap(arr[i + 1], arr[high]);
+  return i + 1;
+}`
+  };
 
   // Handle file upload for non‑normal formats
   const handleFileUpload = (event) => {
@@ -51,7 +135,7 @@ export default function QuickSortVisualization() {
   const validateInput = () => {
     let arr = [];
     if (inputFormat === 'normal') {
-      arr = inputArray.split(',').map(item => item.trim());
+      arr = inputArray.split(',').map((item) => item.trim());
     } else if (inputFormat === 'json') {
       try {
         arr = JSON.parse(inputArray);
@@ -69,7 +153,7 @@ export default function QuickSortVisualization() {
         return false;
       }
     }
-    if (arr.some(item => !item || !/^[a-zA-Z0-9]+$/.test(item))) {
+    if (arr.some((item) => !item || !/^[a-zA-Z0-9]+$/.test(item))) {
       alert('Please enter a valid array with numbers, characters, or strings.');
       return false;
     }
@@ -77,10 +161,9 @@ export default function QuickSortVisualization() {
   };
 
   // QuickSort algorithm with recursive partitioning.
-  // For every partition, a step is recorded that shows:
+  // For every partition, a step is recorded showing:
   // - The pivot chosen and its new index
-  // - The left partition (elements before the pivot)
-  // - The right partition (elements after the pivot)
+  // - The left and right partitions based on the pivot.
   const quickSort = async () => {
     const arrInput = validateInput();
     if (!arrInput) return;
@@ -89,7 +172,7 @@ export default function QuickSortVisualization() {
     setSteps([]);
     setSortedArray(null);
 
-    let arr = [...arrInput]; // make a copy so as not to mutate the original input
+    let arr = [...arrInput]; // copy so as not to mutate the original input
     let stepsArr = [];
 
     // Partition function that reorders the subarray and returns pivot index.
@@ -122,12 +205,12 @@ export default function QuickSortVisualization() {
           pivotIndex: pi,
           leftPartition,
           rightPartition,
-          range: { low, high }
+          range: { low, high },
         };
         stepsArr.push(stepData);
-        setSteps(prev => [...prev, stepData]);
+        setSteps((prev) => [...prev, stepData]);
         // Wait a bit before recursing further.
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         // Recursively sort left and right partitions.
         await recursiveQuickSort(arr, low, pi - 1);
@@ -144,7 +227,7 @@ export default function QuickSortVisualization() {
   const handleDownloadPDF = async () => {
     const element = document.getElementById('visualization');
     if (!element) {
-      alert("Visualization not found!");
+      alert('Visualization not found!');
       return;
     }
     try {
@@ -168,19 +251,32 @@ export default function QuickSortVisualization() {
       }
       pdf.save('quick_sort_visualization.pdf');
     } catch (error) {
-      console.error("Error generating PDF", error);
-      alert("An error occurred while generating the PDF.");
+      console.error('Error generating PDF', error);
+      alert('An error occurred while generating the PDF.');
     }
   };
 
   return (
     <Box sx={{ padding: 3 }}>
-      {/* AppBar with title and Download PDF button */}
+      {/* AppBar with title, dynamic code toggle, and Download PDF button */}
       <AppBar position="static" sx={{ mb: 3, backgroundColor: '#1976d2' }}>
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             QuickSort Visualization
           </Typography>
+          <Button color="inherit" onClick={() => setShowCodePanel((prev) => !prev)}>
+            {showCodePanel ? (
+              <>
+                <DesktopMacIcon sx={{ mr: 1 }} />
+                Screen
+              </>
+            ) : (
+              <>
+                <CodeIcon sx={{ mr: 1 }} />
+                Code
+              </>
+            )}
+          </Button>
           <Button color="inherit" startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPDF}>
             Download PDF
           </Button>
@@ -242,75 +338,148 @@ export default function QuickSortVisualization() {
           </Grid>
         </Grid>
 
-        {/* Visualization Card */}
+        {/* Visualization / Code Panel Card */}
         <Card id="visualization" sx={{ mt: 4, mb: 4, boxShadow: 3 }}>
           <CardContent>
-            {steps.length > 0 ? (
+            {showCodePanel ? (
               <>
-                <Typography variant="h6" gutterBottom>
-                  Steps:
-                </Typography>
-                {steps.map((step, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: index * 0.5 }}
+                <Box
+                  sx={{
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Tabs
+                    value={codeLanguage}
+                    onChange={(e, newValue) => setCodeLanguage(newValue)}
+                    textColor="primary"
+                    indicatorColor="primary"
                   >
-                    <Typography variant="body1" sx={{ mt: 2 }}>
-                      {step.step} (Range: {step.range.low} - {step.range.high})
-                    </Typography>
-                    <Grid container justifyContent="center" spacing={2} sx={{ mt: 2 }}>
-                      {step.arrayState.map((item, idx) => {
-                        // Color-code the pivot, left partition, and right partition
-                        let bgColor = 'white';
-                        if (item === step.pivot && idx === step.pivotIndex) {
-                          bgColor = 'lightgreen';
-                        } else if (step.leftPartition.includes(item)) {
-                          bgColor = 'lightblue';
-                        } else if (step.rightPartition.includes(item)) {
-                          bgColor = 'lightcoral';
-                        }
-                        return (
-                          <Grid item key={idx}>
-                            <motion.div
-                              animate={{ scale: 1.1 }}
-                              transition={{ duration: 0.3 }}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                width: 50,
-                                height: 50,
-                                borderRadius: '10px',
-                                border: '2px solid #000',
-                                fontSize: '18px',
-                                fontWeight: 'bold',
-                                backgroundColor: bgColor,
-                              }}
-                            >
-                              {item}
-                            </motion.div>
-                          </Grid>
-                        );
-                      })}
-                    </Grid>
-                    <Typography variant="body2" sx={{ mt: 2 }}>
-                      Left Partition: {step.leftPartition.join(', ') || 'None'} | Right Partition: {step.rightPartition.join(', ') || 'None'}
-                    </Typography>
-                  </motion.div>
-                ))}
+                    <Tab value="javascript" label="JavaScript" />
+                    <Tab value="java" label="Java" />
+                    <Tab value="python" label="Python" />
+                    <Tab value="cpp" label="C++" />
+                  </Tabs>
+                </Box>
+                <Box sx={{ mt: 2 }}>
+                  <pre
+                    style={{
+                      backgroundColor: '#f5f5f5',
+                      padding: '16px',
+                      borderRadius: '4px',
+                      overflow: 'auto',
+                    }}
+                  >
+                    {codeSnippets[codeLanguage]}
+                  </pre>
+                </Box>
               </>
             ) : (
-              <Typography variant="body1" align="center">
-                Visualization steps will appear here.
-              </Typography>
+              <>
+                {steps.length > 0 ? (
+                  <>
+                    <Typography variant="h6" gutterBottom>
+                      Steps:
+                    </Typography>
+                    {steps.map((step, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.5 }}
+                      >
+                        <Typography variant="body1" sx={{ mt: 2 }}>
+                          {step.step} (Range: {step.range.low} - {step.range.high})
+                        </Typography>
+                        <Grid container justifyContent="center" spacing={2} sx={{ mt: 2 }}>
+                          {step.arrayState.map((item, idx) => {
+                            // Color-code the pivot, left partition, and right partition.
+                            let bgColor = 'white';
+                            if (item === step.pivot && idx === step.pivotIndex) {
+                              bgColor = 'lightgreen';
+                            } else if (step.leftPartition.includes(item)) {
+                              bgColor = 'lightblue';
+                            } else if (step.rightPartition.includes(item)) {
+                              bgColor = 'lightcoral';
+                            }
+                            return (
+                              <Grid item key={idx}>
+                                <motion.div
+                                  animate={{ scale: 1.1 }}
+                                  transition={{ duration: 0.3 }}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    width: 50,
+                                    height: 50,
+                                    borderRadius: '10px',
+                                    border: '2px solid #000',
+                                    fontSize: '18px',
+                                    fontWeight: 'bold',
+                                    backgroundColor: bgColor,
+                                  }}
+                                >
+                                  {item}
+                                </motion.div>
+                              </Grid>
+                            );
+                          })}
+                        </Grid>
+                        <Typography variant="body2" sx={{ mt: 2 }}>
+                          Left Partition: {step.leftPartition.join(', ') || 'None'} | Right
+                          Partition: {step.rightPartition.join(', ') || 'None'}
+                        </Typography>
+                      </motion.div>
+                    ))}
+                  </>
+                ) : (
+                  <Typography variant="body1" align="center">
+                    Visualization steps will appear here.
+                  </Typography>
+                )}
+                <Typography variant="h6" align="center" sx={{ mt: 4 }}>
+                  {sortedArray
+                    ? `Sorted Array: ${sortedArray.join(', ')}`
+                    : 'Sorting in progress...'}
+                </Typography>
+              </>
             )}
-            <Typography variant="h6" align="center" sx={{ mt: 4 }}>
-              {sortedArray ? `Sorted Array: ${sortedArray.join(', ')}` : 'Sorting in progress...'}
-            </Typography>
           </CardContent>
         </Card>
+
+        {/* Detailed Explanation Accordion */}
+        <Accordion sx={{ mt: 4 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Detailed Explanation</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              <strong>QuickSort Algorithm:</strong>
+            </Typography>
+            <Typography variant="body2" paragraph>
+              QuickSort is a divide‑and‑conquer algorithm that works by selecting a 'pivot'
+              element from the array and partitioning the other elements into two subarrays,
+              according to whether they are less than or greater than the pivot.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>How It Works:</strong>
+              <br />
+              1. Choose a pivot (in this implementation, the last element).
+              <br />
+              2. Partition the array so that all elements less than or equal to the pivot are
+              on the left, and all greater elements are on the right.
+              <br />
+              3. Recursively apply the above steps to the left and right subarrays.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              <strong>Time Complexity:</strong> Average case is O(n log n), while the worst case is
+              O(n²) (typically avoided with good pivot selection).
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
       </Box>
     </Box>
   );

@@ -33,10 +33,14 @@ import Preorder from "./Datastructures/Preorder";
 import Postorder from "./Datastructures/Postorder";
 import Inorder from "./Datastructures/Inorder";
 import Display from "./Visualize/Display"; 
+import TreeTraversal from "./Datastructures/TreeTraversal";
+import Primskruskal from "./Algorithms/Primskruskal";
+
+import Feedback from "./components/Feedback";
 
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 
-// Define light and dark themes
+// Define light theme (remains unchanged)
 const lightTheme = {
   palette: {
     mode: "light",
@@ -48,13 +52,13 @@ const lightTheme = {
     },
   },
   typography: {
-    // Define the default text color for light theme
     allVariants: {
       color: "#000", // black text for light mode
     },
   },
 };
 
+// Updated dark theme configuration to enforce white text
 const darkTheme = {
   palette: {
     mode: "dark",
@@ -64,11 +68,15 @@ const darkTheme = {
     secondary: {
       main: "#90caf9",
     },
+    // Ensure text colors are white
+    text: {
+      primary: "#ffffff",
+      secondary: "#ffffff",
+    },
   },
   typography: {
-    // Define the default text color for dark theme
     allVariants: {
-      color: "#fff", // white text for dark mode
+      color: "#ffffff", // white text for dark mode
     },
   },
 };
@@ -118,6 +126,9 @@ export default function App() {
             <Route path="/inorder" element={<Inorder />} />
             <Route path="/hashTable" element={<HashTable />} />
             <Route path="/display" element={<Display />} />
+            <Route path="/traversal" element={<TreeTraversal />} />
+            <Route path="/pk" element={<Primskruskal />} />
+            <Route path="/feedback" element={<Feedback />} />
           </Routes>
         </div>
       </Router>

@@ -1,4 +1,4 @@
-import { Button, Grid, Typography } from "@mui/material";
+import { Card, CardActionArea, CardContent, Container, Grid, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
 
 const dataStructures = [
@@ -11,36 +11,32 @@ const dataStructures = [
 
 export default function TypesOfDataStructures() {
   return (
-    <Grid container spacing={2}>
-      {dataStructures.map((item, index) => (
-        <Grid item xs={12} sm={6} md={4} key={index}>
-          <Button
-            component={Link}
-            to={item.path}
-            variant="outlined"
-            fullWidth
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 2,
-              borderRadius: 2,
-              textDecoration: 'none',
-              border: '2px solid',
-              boxShadow: 2,
-              '&:hover': {
-                boxShadow: 6,
-                backgroundColor: 'rgba(0, 0, 0, 0.05)',
-              },
-            }}
-          >
-            <Typography variant="h6" align="center">
-              {item.title}
-            </Typography>
-          </Button>
-        </Grid>
-      ))}
-    </Grid>
+    <Container maxWidth="sm" sx={{ py: 4 }}>
+      <Grid container direction="column" spacing={3}>
+        {dataStructures.map((item, index) => (
+          <Grid item key={index}>
+            <Card
+              sx={{
+                borderRadius: 3,
+                boxShadow: 3,
+                transition: "transform 0.3s, box-shadow 0.3s",
+                "&:hover": {
+                  transform: "scale(1.02)",
+                  boxShadow: 6,
+                },
+              }}
+            >
+              <CardActionArea component={Link} to={item.path}>
+                <CardContent sx={{ textAlign: "center", py: 3 }}>
+                  <Typography variant="h5" component="div" sx={{ fontWeight: "bold" }}>
+                    {item.title}
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
   );
 }
