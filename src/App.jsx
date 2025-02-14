@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import DataInputStep from "./Algorithms/DataInputStep";
@@ -20,7 +21,6 @@ import CountSort from "./Algorithms/CountSort";
 import BFS from "./Algorithms/BFS";
 import DFS from "./Algorithms/DFS";
 import Dijkstra from "./Algorithms/Dijkstra";
-
 import LinkedList from "./Datastructures/LinkedList";
 import Typesofdatastructures from "./Datastructures/Typesofdatastructures";
 import Stack from "./Datastructures/Stack";
@@ -32,13 +32,12 @@ import Typesoftrees from "./Datastructures/Typesoftrees";
 import Preorder from "./Datastructures/Preorder";
 import Postorder from "./Datastructures/Postorder";
 import Inorder from "./Datastructures/Inorder";
-import Display from "./Visualize/Display"; 
+import Display from "./Visualize/Display";
 import TreeTraversal from "./Datastructures/TreeTraversal";
 import Primskruskal from "./Algorithms/Primskruskal";
-
 import Feedback from "./components/Feedback";
-
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import Footer from "./components/Footer";
+import CustomVisualizer  from "./components/CustomVisualizer";  // Import the Footer component
 
 // Define light theme (remains unchanged)
 const lightTheme = {
@@ -68,7 +67,6 @@ const darkTheme = {
     secondary: {
       main: "#90caf9",
     },
-    // Ensure text colors are white
     text: {
       primary: "#ffffff",
       secondary: "#ffffff",
@@ -82,54 +80,70 @@ const darkTheme = {
 };
 
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false); // Track dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode); // Toggle between light and dark mode
+    setIsDarkMode(!isDarkMode);
   };
 
   return (
     <ThemeProvider theme={createTheme(isDarkMode ? darkTheme : lightTheme)}>
-      <CssBaseline /> {/* Global CSS reset to apply theme */}
+      <CssBaseline />
       <Router>
-        <Navbar toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
-        <div style={{ paddingTop: "60px" }}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="data-input" element={<DataInputStep />} />
-            <Route path="select-algorithm" element={<SelectAlgorithmStep />} />
-            <Route path="visualize" element={<Visualize />} />
-            <Route path="/typesofalgorithms" element={<TypesofAlgorithms />} />
-            <Route path="/searchingList" element={<SearchingList />} />
-            <Route path="/sortingList" element={<SortingList />} />
-            <Route path="/graphsList" element={<GraphsList />} />
-            <Route path="/linearSearch" element={<LinearSearch />} />
-            <Route path="/binarySearch" element={<BinarySearch />} />
-            <Route path="/interpolationSearch" element={<InterpolationSearch />} />
-            <Route path="/bubbleSort" element={<BubbleSort />} />
-            <Route path="/quickSort" element={<QuickSort />} />
-            <Route path="/mergeSort" element={<MergeSort />} />
-            <Route path="/heapSort" element={<HeapSort />} />
-            <Route path="/countSort" element={<CountSort />} />
-            <Route path="/bfs" element={<BFS />} />
-            <Route path="/dfs" element={<DFS />} />
-            <Route path="/dijkstra" element={<Dijkstra />} />
-            <Route path="/typesofdatastructures" element={<Typesofdatastructures />} />
-            <Route path="/linkedlist" element={<LinkedList />} />
-            <Route path="/stack" element={<Stack />} />
-            <Route path="/queue" element={<Queue />} />
-            <Route path="/typesoftrees" element={<Typesoftrees />} />
-            <Route path="/bst" element={<BST />} />
-            <Route path="/avl" element={<AVL />} />
-            <Route path="/preorder" element={<Preorder />} />
-            <Route path="/postorder" element={<Postorder />} />
-            <Route path="/inorder" element={<Inorder />} />
-            <Route path="/hashTable" element={<HashTable />} />
-            <Route path="/display" element={<Display />} />
-            <Route path="/traversal" element={<TreeTraversal />} />
-            <Route path="/pk" element={<Primskruskal />} />
-            <Route path="/feedback" element={<Feedback />} />
-          </Routes>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "100vh",
+          }}
+        >
+          {/* Navbar remains at the top */}
+          <Navbar toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
+          
+          {/* Main content area that grows as needed */}
+          <main style={{ flexGrow: 1, paddingTop: "60px" }}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="data-input" element={<DataInputStep />} />
+              <Route path="select-algorithm" element={<SelectAlgorithmStep />} />
+              <Route path="visualize" element={<Visualize />} />
+              <Route path="/typesofalgorithms" element={<TypesofAlgorithms />} />
+              <Route path="/searchingList" element={<SearchingList />} />
+              <Route path="/sortingList" element={<SortingList />} />
+              <Route path="/graphsList" element={<GraphsList />} />
+              <Route path="/linearSearch" element={<LinearSearch />} />
+              <Route path="/binarySearch" element={<BinarySearch />} />
+              <Route path="/interpolationSearch" element={<InterpolationSearch />} />
+              <Route path="/bubbleSort" element={<BubbleSort />} />
+              <Route path="/quickSort" element={<QuickSort />} />
+              <Route path="/mergeSort" element={<MergeSort />} />
+              <Route path="/heapSort" element={<HeapSort />} />
+              <Route path="/countSort" element={<CountSort />} />
+              <Route path="/bfs" element={<BFS />} />
+              <Route path="/dfs" element={<DFS />} />
+              <Route path="/dijkstra" element={<Dijkstra />} />
+              <Route path="/typesofdatastructures" element={<Typesofdatastructures />} />
+              <Route path="/linkedlist" element={<LinkedList />} />
+              <Route path="/stack" element={<Stack />} />
+              <Route path="/queue" element={<Queue />} />
+              <Route path="/typesoftrees" element={<Typesoftrees />} />
+              <Route path="/bst" element={<BST />} />
+              <Route path="/avl" element={<AVL />} />
+              <Route path="/preorder" element={<Preorder />} />
+              <Route path="/postorder" element={<Postorder />} />
+              <Route path="/inorder" element={<Inorder />} />
+              <Route path="/hashTable" element={<HashTable />} />
+              <Route path="/display" element={<Display />} />
+              <Route path="/traversal" element={<TreeTraversal />} />
+              <Route path="/pk" element={<Primskruskal />} />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route path="/customv" element={<CustomVisualizer />} />
+
+            </Routes>
+          </main>
+          
+          {/* Footer fixed at the bottom of the layout */}
+          <Footer />
         </div>
       </Router>
     </ThemeProvider>

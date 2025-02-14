@@ -16,18 +16,24 @@ export default function Navbar({ toggleTheme, isDarkMode }) {
     >
       <Toolbar sx={{ display: "flex", alignItems: "center" }}>
         <Sidebar />
-        <Typography
-          variant="h6"
-          sx={{
-            color: "white",
-            marginLeft: 2,
-            fontWeight: "bold",
-            transition: "transform 0.3s",
-            "&:hover": { transform: "scale(1.05)" },
-          }}
-        >
-          DSA Executors
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
+          <img
+            src="dsae.png" // Update with your logo path
+            alt="Logo"
+            style={{ height: "40px", marginRight: "10px" }}
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              color: "white",
+              fontWeight: "bold",
+              transition: "transform 0.3s",
+              "&:hover": { transform: "scale(1.05)" },
+            }}
+          >
+            DSA Executors
+          </Typography>
+        </Box>
         <Box sx={{ flexGrow: 1 }} />
         <IconButton
           onClick={toggleTheme}

@@ -19,10 +19,22 @@ export default function FeedbackForm() {
     rating: 0,
   });
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+
+  // Email validation function
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
 
   // Handle input changes for text fields
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    // If the email field is updated, validate it
+    if (name === "email") {
+      setEmailError(!validateEmail(value));
+    }
+    setFormData({ ...formData, [name]: value });
   };
 
   // Handle rating changes
@@ -34,14 +46,36 @@ export default function FeedbackForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    if (!validateEmail(formData.email)) {
+      setEmailError(true);
+      return;
+    }
+
     // Replace these with your actual EmailJS details
     const serviceID = "service_8fi1lc6"; // Your Email Service ID
-    const templateID = "template_imb8ecd"; // Your Email Template ID
+    const templateID = "template_imb8ecd"; // Your Email Template ID for feedback
+    const thankYouTemplateID = "template_ueeoweq"; // Your Thank You Email Template ID
     const userID = "4HBJLo4lT5a8QqsrC"; // Your User (Public) ID
 
+    // Send feedback email
     emailjs.send(serviceID, templateID, formData, userID).then(
       (response) => {
-        console.log("SUCCESS!", response.status, response.text);
+        console.log("Feedback email SUCCESS!", response.status, response.text);
+
+        // Send Thank You email to the user
+        const thankYouParams = {
+          to_email: formData.email,
+          name: formData.name,
+        };
+        emailjs.send(serviceID, thankYouTemplateID, thankYouParams, userID).then(
+          (res) => {
+            console.log("Thank You email sent", res.status, res.text);
+          },
+          (err) => {
+            console.error("Failed to send Thank You email", err);
+          }
+        );
+
         setSnackbarOpen(true);
         setFormData({
           name: "",
@@ -51,7 +85,7 @@ export default function FeedbackForm() {
         });
       },
       (err) => {
-        console.error("FAILED...", err);
+        console.error("FAILED to send feedback...", err);
       }
     );
   };
@@ -90,6 +124,8 @@ export default function FeedbackForm() {
             required
             margin="normal"
             type="email"
+            error={emailError}
+            helperText={emailError ? "Enter a valid email address" : ""}
           />
           <Typography variant="subtitle1" sx={{ mt: 2 }}>
             Overall Website Rating:
@@ -102,7 +138,7 @@ export default function FeedbackForm() {
             sx={{ my: 1 }}
           />
           <TextField
-            label="Need to improve any feature "
+            label="Need to improve any feature"
             name="message"
             value={formData.message}
             onChange={handleChange}

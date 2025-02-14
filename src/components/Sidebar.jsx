@@ -25,7 +25,8 @@ export default function Sidebar() {
     { text: "Home", path: "/", icon: <Home /> },
     { text: "Algorithms", path: "/typesofalgorithms", icon: <Storage /> },
     { text: "Datastructure", path: "/typesofdatastructures", icon: <Functions /> },
-    { text: "Visualization", path: "/display", icon: <Visibility /> },
+    { text: "Custom Visualizer", path: "/customv", icon: <Visibility /> },
+    { text: "Visualize Charts", path: "/display", icon: <Visibility /> },
     { text: "Feedback", path: "/feedback", icon: <Speed /> }, // Changed icon to Speed
   ];
 
